@@ -16,8 +16,9 @@ Here is the basic design:
 
 	| Font file path | Resulting font name |
 	| -------------- | ------------------- |
-	| `fonts/SanomatSansText-Book.otf` | SanomatSansTextBook |
-	| `fonts/Sanomat-Medium.otf` | SanomatMedium |
-	| `fonts/FrameText-Medium.otf` | FrameTextMedium |
+	| `fonts/SanomatSansText-SemiboldItalic.otf` | `SANOMAT_SANS_TEXT_SEMIBOLD_ITALIC` |
+	| `fonts/Sanomat-Semibold.otf` | `SANOMAT_SEMIBOLD` |
+	| `fonts/FrameHead.otf` | `FRAME_HEAD` |
+	| `fonts/FrameHead-Italic.otf` | `FRAME_HEAD_ITALIC` |
 
 7. It will accept a URL-encoded string in a `title` query param, like `og.chriskrycho.com/?title=How%20Progress%20Feels`. From this, it will produce an image of the specified dimensions with the URL-encoded text decoded into a normal string, like `How Progress Feels`.
