@@ -11,14 +11,17 @@ fn main() {
 fn render(text: &str) -> Image<Rgb> {
     let fonts = Fonts::load();
 
+    // The offset *would* be 32, 32, but needs to take off one pixel on each
+    // side to account for the extra pixel outside the inset rectangle one each
+    // side courtesy of the 3px centered border.
     let inset = ril::Rectangle::at(32, 32)
-        .with_fill(TEXT_BG)
-        .with_size(1464, 736)
         .with_border(ril::Border {
             color: BORDER,
             thickness: 3,
             position: ril::BorderPosition::Center,
-        });
+        })
+        .with_size(1464, 736)
+        .with_fill(TEXT_BG);
 
     let post_title = TextLayout::new()
         .with_wrap(WrapStyle::Word)
@@ -48,7 +51,7 @@ fn render(text: &str) -> Image<Rgb> {
             AUTHOR_COLOR,
         ));
 
-    ril::Image::new(1520, 800, IMAGE_BG)
+    ril::Image::new(1528, 800, IMAGE_BG)
         .with(&inset)
         .with(&author)
         .with(&site_title)
