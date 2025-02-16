@@ -2,6 +2,7 @@
 name = "opengraph-image"
 version = "0.1.0"
 edition = "2021"
+license = "BlueOak-1.0.0"
 
 [dependencies]
 ril = { version = "0.10", features = ["png"] }
