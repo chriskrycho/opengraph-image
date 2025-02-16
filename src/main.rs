@@ -1,9 +1,11 @@
-use ril::{Font, Image, Rgb, TextAlign, TextLayout, TextSegment, WrapStyle};
+use ril::{Font, Image, ImageFormat, Rgb, TextAlign, TextLayout, TextSegment, WrapStyle};
 
 fn main() {
     let img = render("Tidy First? A Personal Exercise in Empirical Software Design");
+    let mut buff = Vec::<u8>::with_capacity(img.data.len());
+    img.encode(ImageFormat::Png, &mut buff).unwrap();
     std::fs::create_dir_all("output").unwrap();
-    img.save_inferred("output/rendered.png").unwrap()
+    std::fs::write("output/rendered.png", buff).unwrap()
 }
 
 fn render(text: &str) -> Image<Rgb> {
