@@ -2,7 +2,7 @@ A small Rust application to generate social media images (for OpenGraph etc.).
 
 Here is the basic design:
 
-1. It will run as a Cloudflare worker.
+1. It will run in a serverless environment that supports running Rust natively.
 
 2. It will be deployed at `og.chriskrycho.com`.
 
