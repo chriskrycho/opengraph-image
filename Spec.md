@@ -22,3 +22,5 @@ Here is the basic design:
 	| `fonts/FrameHead-Italic.otf` | `FRAME_HEAD_ITALIC` |
 
 7. It will accept a URL-encoded string in a `title` query param, like `og.chriskrycho.com/?title=How%20Progress%20Feels`. From this, it will produce an image of the specified dimensions with the URL-encoded text decoded into a normal string, like `How Progress Feels`.
+
+8. Assets will be deployed to Backblaze B2.

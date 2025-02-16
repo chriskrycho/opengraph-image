@@ -1,11 +1,55 @@
+mod b2;
+
+use std::io;
+
+use reqwest::Client;
 use ril::{Font, Image, ImageFormat, Rgb, TextAlign, TextLayout, TextSegment, WrapStyle};
 
-fn main() {
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<(), Error> {
     let img = render("Tidy First? A Personal Exercise in Empirical Software Design");
-    let mut buff = Vec::<u8>::with_capacity(img.data.len());
-    img.encode(ImageFormat::Png, &mut buff).unwrap();
-    std::fs::create_dir_all("output").unwrap();
-    std::fs::write("output/rendered.png", buff).unwrap()
+    let file_name = "testing.png";
+    let mut data = Vec::<u8>::with_capacity(img.data.len());
+    img.encode(ImageFormat::Png, &mut data).unwrap();
+
+    let auth_file = std::fs::read_to_string("Secrets.toml").map_err(|source| Error::Io {
+        message: String::from("Could not read Secrets.toml"),
+        source,
+    })?;
+    let auth: Auth = toml::from_str(&auth_file)?;
+
+    b2::ClientBuilder::new(auth.id, auth.key)
+        .authorize(Client::new())
+        .await?
+        .upload_file(file_name, data)
+        .await?;
+
+    Ok(())
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+struct Auth {
+    id: String,
+    key: String,
+}
+
+#[derive(Debug, thiserror::Error)]
+enum Error {
+    #[error(transparent)]
+    B2 {
+        #[from]
+        source: b2::Error,
+    },
+
+    #[error("{message}: {source}")]
+    Io { message: String, source: io::Error },
+
+    #[error("Could not deserialize secrets")]
+    DeserializeSecrets {
+        #[from]
+        source: toml::de::Error,
+    },
 }
 
 fn render(text: &str) -> Image<Rgb> {
