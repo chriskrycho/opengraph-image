@@ -43,7 +43,7 @@ async fn image(
     Query(qp): Query<QueryParams>,
 ) -> Result<Response<Body>, Error> {
     let hash = sha1_hash(qp.page_title.as_bytes());
-    let file_name = format!("{GIT_SHA}+{hash}.png");
+    let file_name = format!("{GIT_SHA}-{hash}.png");
 
     let mut b2_client = b2::ClientBuilder::new(auth.id, auth.key)
         .authorize(reqwest::Client::new())

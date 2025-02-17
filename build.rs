@@ -2,7 +2,7 @@ use std::process::Command;
 
 fn main() {
     let stdout = Command::new("git")
-        .args(&["rev-parse", "HEAD"])
+        .args(&["rev-parse", "--short=8", "HEAD"])
         .output()
         .unwrap()
         .stdout;
