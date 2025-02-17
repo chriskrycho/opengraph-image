@@ -3,6 +3,8 @@ mod image;
 
 use std::io;
 
+const GIT_SHA: &str = env!("GIT_SHA");
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Error> {
     let data = image::render("Tidy First? A Personal Exercise in Empirical Software Design");
