@@ -27,6 +27,12 @@ async fn main() -> Result<(), Error> {
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+
+fn sha1_hash(data: &[u8]) -> String {
+    let mut hasher = Sha1::new();
+    hasher.update(data);
+    format!("{:x}", hasher.finalize())
+}
 struct Auth {
     id: String,
     key: String,

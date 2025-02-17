@@ -1,8 +1,7 @@
 use std::fmt;
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
-use reqwest::header;
-use sha1::{Digest, Sha1};
+use reqwest::{header, StatusCode};
 
 const API_BASE: &str = "https://api.backblazeb2.com";
 const API_PATH: &str = "b2api/v3";
@@ -56,13 +55,7 @@ impl Client {
     const FILE_NAME: &str = "X-Bz-File-Name";
     const CONTENT_SHA: &str = "X-Bz-Content-Sha1";
 
-    pub async fn upload_file(&mut self, file_name: &str, data: Vec<u8>) -> Result<(), Error> {
-        let file_name = if file_name.starts_with("opengraph/") {
-            file_name.to_string()
-        } else {
-            format!("opengraph/{file_name}")
-        };
-
+    pub async fn upload_file(&mut self, file_name: &str, data: &[u8]) -> Result<(), Error> {
         let mut latest_err = None;
         for _ in 0..5 {
             let upload = self.get_upload_url().await?;
@@ -71,11 +64,11 @@ impl Client {
                 .client
                 .post(&upload.upload_url)
                 .header(header::AUTHORIZATION, upload.authorization_token)
-                .header(Client::FILE_NAME, &file_name)
+                .header(Client::FILE_NAME, &normalized(file_name))
                 .header(header::CONTENT_TYPE, "image/png")
                 .header(header::CONTENT_LENGTH, data.len())
-                .header(Client::CONTENT_SHA, sha1_hash(&data))
-                .body(data.clone());
+                .header(Client::CONTENT_SHA, super::sha1_hash(&data))
+                .body(data.to_owned());
 
             let response = req
                 .send()
@@ -94,6 +87,31 @@ impl Client {
             Err(err)
         } else {
             Ok(())
+        }
+    }
+
+    pub async fn download_file(&mut self, file_name: &str) -> Result<Option<Vec<u8>>, Error> {
+        let req_url = format!(
+            "{}/{API_PATH}/file/chriskrycho-com/{}",
+            &self.auth.api_url,
+            &normalized(file_name)
+        );
+
+        let resp = self
+            .client
+            .get(req_url)
+            .header(header::AUTHORIZATION, &self.auth.token)
+            .send()
+            .await?;
+
+        if resp.status().is_success() {
+            Ok(Some(resp.bytes().await?.to_vec()))
+        } else if resp.status() == StatusCode::NOT_FOUND {
+            Ok(None)
+        } else {
+            Err(Error::Download {
+                details: resp.json().await?,
+            })
         }
     }
 
@@ -120,6 +138,15 @@ impl Client {
 
         Ok(upload_url)
     }
+}
+
+fn normalized(file_name: &str) -> String {
+    let file_name = if file_name.starts_with("opengraph/") {
+        file_name.to_string()
+    } else {
+        format!("opengraph/{file_name}")
+    };
+    file_name
 }
 
 // Note: these are intentionally incomplete! This does *not* ignore unknown
@@ -168,12 +195,6 @@ struct UploadUrlResponse {
     authorization_token: String,
 }
 
-fn sha1_hash(data: &[u8]) -> String {
-    let mut hasher = Sha1::new();
-    hasher.update(data);
-    format!("{:x}", hasher.finalize())
-}
-
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum Error {
     #[error("Request failed: {source}")]
@@ -196,6 +217,9 @@ pub(crate) enum Error {
 
     #[error("Upload failed: {details:?}")]
     Upload { details: ErrorResponse },
+
+    #[error("Download failed: {details:?}")]
+    Download { details: ErrorResponse },
 
     #[error("Get upload URL failed: {source}")]
     GetUploadUrl { source: reqwest::Error },
