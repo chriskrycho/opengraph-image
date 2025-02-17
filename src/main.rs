@@ -43,17 +43,17 @@ async fn image(
     Query(qp): Query<QueryParams>,
 ) -> Result<Response<Body>, Error> {
     let hash = sha1_hash(qp.page_title.as_bytes());
-    let cache_key = format!("{GIT_SHA}+{hash}");
+    let file_name = format!("{GIT_SHA}+{hash}.png");
 
     let mut b2_client = b2::ClientBuilder::new(auth.id, auth.key)
         .authorize(reqwest::Client::new())
         .await?;
 
-    let image_data = match b2_client.download_file(&cache_key).await? {
+    let image_data = match b2_client.download_file(&file_name).await? {
         Some(data) => data,
         None => {
             let data = image::render(&qp.page_title);
-            b2_client.upload_file(&cache_key, &data).await?;
+            b2_client.upload_file(&file_name, &data).await?;
             data
         }
     };
@@ -64,7 +64,7 @@ async fn image(
         header::CACHE_CONTROL,
         "public, max-age=31536000".parse().unwrap(),
     );
-    headers.insert(header::ETAG, cache_key.parse().unwrap());
+    headers.insert(header::ETAG, file_name.parse().unwrap());
     let response = (headers, image_data).into_response();
     Ok(response)
 }
