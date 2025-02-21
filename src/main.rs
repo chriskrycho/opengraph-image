@@ -1,7 +1,7 @@
 mod b2;
 mod image;
 
-use std::process;
+use std::{env, process};
 
 use axum::{
     Router,
@@ -11,14 +11,25 @@ use axum::{
     response::IntoResponse,
     routing,
 };
+use http::{HeaderValue, Method};
 use reqwest::header;
 use sha1::{Digest, Sha1};
 use shuttle_runtime::SecretStore;
+use tower_http::cors::CorsLayer;
 
 const GIT_SHA: &str = env!("GIT_SHA");
 
 #[shuttle_runtime::main]
 async fn main(#[shuttle_runtime::Secrets] secrets: SecretStore) -> shuttle_axum::ShuttleAxum {
+    let cors = CorsLayer::new().allow_methods([Method::GET]).allow_origin(
+        if env::var("SHUTTLE").unwrap_or_default() == "true" {
+            HeaderValue::from_str("*.chriskrycho.com")
+        } else {
+            HeaderValue::from_str("http://localhost:*")
+        }
+        .unwrap(),
+    );
+
     let auth = Auth::try_from(secrets).unwrap_or_else(|err| {
         eprintln!("{err}");
         process::exit(1);
@@ -28,7 +39,8 @@ async fn main(#[shuttle_runtime::Secrets] secrets: SecretStore) -> shuttle_axum:
 
     let router = Router::new()
         .route("/", routing::get(image))
-        .with_state(app_state);
+        .with_state(app_state)
+        .layer(cors);
 
     Ok(router.into())
 }

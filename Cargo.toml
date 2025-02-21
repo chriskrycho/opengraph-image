@@ -8,6 +8,7 @@ license = "BlueOak-1.0.0"
 axum = { version = "0.8", features = ["macros"] }
 anyhow = "1"
 base64 = "0.22"
+http = "1"
 reqwest = { version = "0.12", default-features = false, features = [
     "json",
     "rustls-tls",
@@ -20,5 +21,6 @@ sha1 = "0.10"
 shuttle-axum = "0.52.0"
 shuttle-runtime = "0.52.0"
 thiserror = "1"
-toml = "0.8"
 tokio = { version = "1", features = ["rt", "macros"] }
+toml = "0.8"
+tower-http = { version = "0.6", features = ["cors"] }
