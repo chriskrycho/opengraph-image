@@ -1,7 +1,7 @@
 use std::fmt;
 
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
-use reqwest::{header, StatusCode};
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use reqwest::{StatusCode, header};
 
 const API_BASE: &str = "https://api.backblazeb2.com";
 const API_PATH: &str = "b2api/v3";

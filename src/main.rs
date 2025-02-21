@@ -4,11 +4,12 @@ mod image;
 use std::process;
 
 use axum::{
+    Router,
     body::Body,
     extract::{Query, State},
     http::{self, HeaderMap, Response},
     response::IntoResponse,
-    routing, Router,
+    routing,
 };
 use reqwest::header;
 use sha1::{Digest, Sha1};
