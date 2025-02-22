@@ -33,27 +33,39 @@ async fn main() -> Result<(), Error> {
 
     let is_prod = env::var("ON_RENDER").unwrap_or_default() == "true";
 
-    let cors = CorsLayer::new().allow_methods([Method::GET]).allow_origin(
-        if is_prod {
-            HeaderValue::from_str("*.chriskrycho.com")
-        } else {
-            HeaderValue::from_str("http://localhost:*")
-        }
-        .unwrap(),
-    );
+    let v5 = if is_prod {
+        "https://v5.chriskrycho.com"
+    } else {
+        "http://localhost:*"
+    };
+
+    let cors_v5 = CorsLayer::new()
+        .allow_methods([Method::GET])
+        .allow_origin(HeaderValue::from_str(v5).unwrap());
+
+    let v6 = if is_prod {
+        "https://v5.chriskrycho.com"
+    } else {
+        "http://localhost:*"
+    };
+
+    let cors_v6 = CorsLayer::new()
+        .allow_methods([Method::GET])
+        .allow_origin(HeaderValue::from_str(v6).unwrap());
 
     let state = AppState { auth };
 
     let app = Router::new()
         .route("/", routing::get(image))
         .with_state(state)
-        .layer(cors);
+        .layer(cors_v5)
+        .layer(cors_v6);
 
     let port = env::var("PORT").unwrap_or("10000".to_string());
     let host = if is_prod { "0.0.0.0" } else { "127.0.0.1" };
     let listener = TcpListener::bind(format!("{host}:{port}"))
         .await
-        .map_err(|source| Error::Port { port: 8000, source })?;
+        .map_err(|source| Error::Port { port, source })?;
 
     axum::serve(listener, app)
         .await
@@ -122,7 +134,7 @@ enum Error {
     Io { path: PathBuf, source: io::Error },
 
     #[error("Could not bind to port {port}")]
-    Port { port: u16, source: io::Error },
+    Port { port: String, source: io::Error },
 
     #[error(transparent)]
     B2 {
