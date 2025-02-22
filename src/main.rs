@@ -1,7 +1,7 @@
 mod b2;
 mod image;
 
-use std::{env, process};
+use std::{env, io, path::PathBuf};
 
 use axum::{
     Router,
@@ -14,13 +14,23 @@ use axum::{
 use http::{HeaderValue, Method};
 use reqwest::header;
 use sha1::{Digest, Sha1};
-use shuttle_runtime::SecretStore;
+use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 
 const GIT_SHA: &str = env!("GIT_SHA");
+const SECRETS: &str = "Secrets.toml";
 
-#[shuttle_runtime::main]
-async fn main(#[shuttle_runtime::Secrets] secrets: SecretStore) -> shuttle_axum::ShuttleAxum {
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    let secrets_file = tokio::fs::read_to_string(SECRETS)
+        .await
+        .map_err(|source| Error::Io {
+            path: SECRETS.into(),
+            source,
+        })?;
+
+    let auth: Auth = toml::from_str(&secrets_file)?;
+
     let cors = CorsLayer::new().allow_methods([Method::GET]).allow_origin(
         if env::var("SHUTTLE").unwrap_or_default() == "true" {
             HeaderValue::from_str("*.chriskrycho.com")
@@ -30,19 +40,20 @@ async fn main(#[shuttle_runtime::Secrets] secrets: SecretStore) -> shuttle_axum:
         .unwrap(),
     );
 
-    let auth = Auth::try_from(secrets).unwrap_or_else(|err| {
-        eprintln!("{err}");
-        process::exit(1);
-    });
+    let state = AppState { auth };
 
-    let app_state = AppState { auth };
-
-    let router = Router::new()
+    let app = Router::new()
         .route("/", routing::get(image))
-        .with_state(app_state)
+        .with_state(state)
         .layer(cors);
 
-    Ok(router.into())
+    let listener = TcpListener::bind("127.0.0.1:8000")
+        .await
+        .map_err(|source| Error::Port { port: 8000, source })?;
+
+    axum::serve(listener, app)
+        .await
+        .map_err(|source| Error::Serve { source })
 }
 
 #[derive(Debug, Clone)]
@@ -87,23 +98,13 @@ fn sha1_hash(data: &[u8]) -> String {
     hasher.update(data);
     format!("{:x}", hasher.finalize())
 }
-#[derive(Clone, Debug)]
+
+#[derive(Clone, Debug, serde::Deserialize)]
 struct Auth {
+    #[serde(rename = "ID")]
     id: String,
+    #[serde(rename = "KEY")]
     key: String,
-}
-
-impl TryFrom<SecretStore> for Auth {
-    type Error = MissingSecrets;
-
-    fn try_from(secrets: SecretStore) -> Result<Self, Self::Error> {
-        match (secrets.get("ID"), secrets.get("KEY")) {
-            (Some(id), Some(key)) => Ok(Auth { id, key }),
-            (Some(_), None) => Err(MissingSecrets::Key),
-            (None, Some(_)) => Err(MissingSecrets::Id),
-            (None, None) => Err(MissingSecrets::Both),
-        }
-    }
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -113,21 +114,26 @@ struct QueryParams {
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
+    #[error("IO error at {path}: {source}")]
+    Io { path: PathBuf, source: io::Error },
+
+    #[error("Could not bind to port {port}")]
+    Port { port: u16, source: io::Error },
+
     #[error(transparent)]
     B2 {
         #[from]
         source: b2::Error,
     },
-}
 
-#[derive(Debug, thiserror::Error)]
-enum MissingSecrets {
-    #[error("Missing `KEY`")]
-    Key,
-    #[error("Missing `ID`")]
-    Id,
-    #[error("Missing `KEY` and `ID`")]
-    Both,
+    #[error("Invalid or missing secrets: {source}")]
+    Secrets {
+        #[from]
+        source: toml::de::Error,
+    },
+
+    #[error("Could not serve app: {source}")]
+    Serve { source: io::Error },
 }
 
 impl IntoResponse for Error {

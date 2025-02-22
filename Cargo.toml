@@ -18,9 +18,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 serde_path_to_error = "0.1"
 sha1 = "0.10"
-shuttle-axum = "0.52.0"
-shuttle-runtime = "0.52.0"
 thiserror = "1"
-tokio = { version = "1", features = ["rt", "macros"] }
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "fs", "macros"] }
 toml = "0.8"
 tower-http = { version = "0.6", features = ["cors"] }
