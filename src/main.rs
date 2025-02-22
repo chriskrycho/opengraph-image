@@ -31,8 +31,10 @@ async fn main() -> Result<(), Error> {
 
     let auth: Auth = toml::from_str(&secrets_file)?;
 
+    let is_prod = env::var("ON_RENDER").unwrap_or_default() == "true";
+
     let cors = CorsLayer::new().allow_methods([Method::GET]).allow_origin(
-        if env::var("SHUTTLE").unwrap_or_default() == "true" {
+        if is_prod {
             HeaderValue::from_str("*.chriskrycho.com")
         } else {
             HeaderValue::from_str("http://localhost:*")
@@ -47,7 +49,9 @@ async fn main() -> Result<(), Error> {
         .with_state(state)
         .layer(cors);
 
-    let listener = TcpListener::bind("127.0.0.1:8000")
+    let port = env::var("PORT").unwrap_or("10000".to_string());
+    let host = if is_prod { "0.0.0.0" } else { "127.0.0.1" };
+    let listener = TcpListener::bind(format!("{host}:{port}"))
         .await
         .map_err(|source| Error::Port { port: 8000, source })?;
 
