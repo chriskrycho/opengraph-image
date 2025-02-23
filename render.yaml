@@ -5,4 +5,4 @@ services:
     autoDeploy: true
     domain: opengraph.chriskrycho.com
     buildCommand: cargo build --release
-    startCommand: cargo run --release
+    startCommand: ./target/run/opengraph-image
