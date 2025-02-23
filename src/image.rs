@@ -1,6 +1,7 @@
 use ril::{Font, ImageFormat, Rgb, TextAlign, TextLayout, TextSegment, WrapStyle};
 
 pub(crate) fn render(text: &str) -> Vec<u8> {
+    println!("INFO: Rendering image for '{}'", text);
     let fonts = Fonts::load();
 
     // The offset *would* be 32, 32, but needs to take off one pixel on each
