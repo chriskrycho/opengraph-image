@@ -33,7 +33,6 @@ async fn main() -> Result<(), Error> {
 
     let is_prod = env::var("ON_RENDER").unwrap_or_default() == "true";
 
-
     let allowed = if is_prod {
         "https://*.chriskrycho.com"
     } else {
@@ -46,11 +45,14 @@ async fn main() -> Result<(), Error> {
 
     let app = Router::new()
         .route("/", routing::get(image))
+        .with_state(AppState { auth })
         .layer(cors);
 
     let port = env::var("PORT").unwrap_or("10000".to_string());
     let host = if is_prod { "0.0.0.0" } else { "127.0.0.1" };
-    let listener = TcpListener::bind(format!("{host}:{port}"))
+    let addr = format!("{host}:{port}");
+    println!("INFO: Listening on http://{addr}"); // TODO: tracing/logging properly!
+    let listener = TcpListener::bind(addr)
         .await
         .map_err(|source| Error::Port { port, source })?;
 
