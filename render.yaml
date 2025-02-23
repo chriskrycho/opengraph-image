@@ -4,5 +4,5 @@ services:
     runtime: rust
     autoDeploy: true
     domain: opengraph.chriskrycho.com
-    buildCommand: cargo build --release
-    startCommand: ./target/run/opengraph-image
+    buildCommand: cargo build --release --locked
+    startCommand: cargo run --release --locked
