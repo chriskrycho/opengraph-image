@@ -48,10 +48,11 @@ async fn main() -> Result<(), Error> {
         .with_state(AppState { auth })
         .layer(cors);
 
+    let protocol = if is_prod { "https" } else { "http" };
     let port = env::var("PORT").unwrap_or("10000".to_string());
     let host = if is_prod { "0.0.0.0" } else { "127.0.0.1" };
     let addr = format!("{host}:{port}");
-    println!("INFO: Listening on http://{addr}"); // TODO: tracing/logging properly!
+    println!("INFO: Listening on {protocol}://{addr}"); // TODO: tracing/logging properly!
     let listener = TcpListener::bind(addr)
         .await
         .map_err(|source| Error::Port { port, source })?;
