@@ -33,33 +33,22 @@ async fn main() -> Result<(), Error> {
 
     let is_prod = env::var("ON_RENDER").unwrap_or_default() == "true";
 
-    let v5 = if is_prod {
-        "https://v5.chriskrycho.com"
-    } else {
-        "http://localhost:*"
-    };
-
-    let cors_v5 = CorsLayer::new()
-        .allow_methods([Method::GET])
-        .allow_origin(HeaderValue::from_str(v5).unwrap());
-
-    let v6 = if is_prod {
-        "https://v5.chriskrycho.com"
-    } else {
-        "http://localhost:*"
-    };
-
-    let cors_v6 = CorsLayer::new()
-        .allow_methods([Method::GET])
-        .allow_origin(HeaderValue::from_str(v6).unwrap());
 
     let state = AppState { auth };
+    let allowed = if is_prod {
+        "https://*.chriskrycho.com"
+    } else {
+        "http://localhost:*"
+    };
+
+    let cors = CorsLayer::new()
+        .allow_methods([Method::GET])
+        .allow_origin(HeaderValue::from_str(allowed).unwrap());
 
     let app = Router::new()
         .route("/", routing::get(image))
         .with_state(state)
-        .layer(cors_v5)
-        .layer(cors_v6);
+        .layer(cors);
 
     let port = env::var("PORT").unwrap_or("10000".to_string());
     let host = if is_prod { "0.0.0.0" } else { "127.0.0.1" };
