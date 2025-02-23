@@ -34,7 +34,6 @@ async fn main() -> Result<(), Error> {
     let is_prod = env::var("ON_RENDER").unwrap_or_default() == "true";
 
 
-    let state = AppState { auth };
     let allowed = if is_prod {
         "https://*.chriskrycho.com"
     } else {
@@ -47,7 +46,6 @@ async fn main() -> Result<(), Error> {
 
     let app = Router::new()
         .route("/", routing::get(image))
-        .with_state(state)
         .layer(cors);
 
     let port = env::var("PORT").unwrap_or("10000".to_string());
