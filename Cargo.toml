@@ -4,10 +4,19 @@ version = "0.1.0"
 edition = "2024"
 license = "BlueOak-1.0.0"
 
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.release]
+release = false
+
+# https://github.com/rustwasm/wasm-pack/issues/1247
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
 [dependencies]
-axum = { version = "0.8", features = ["macros"] }
-anyhow = "1"
 base64 = "0.22"
+console_error_panic_hook = { version = "0.1.1" }
 http = "1"
 reqwest = { version = "0.12", default-features = false, features = [
     "json",
@@ -17,11 +26,11 @@ ril = { version = "0.10", features = ["png"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 serde_path_to_error = "0.1"
+serde_urlencoded = "0.7.1"
 sha1 = "0.10"
 thiserror = "1"
-tokio = { version = "1", features = ["rt", "rt-multi-thread", "fs", "macros"] }
-toml = "0.8"
-tower-http = { version = "0.6", features = ["cors"] }
+worker = { version = "0.5.0", features = ['http'] }
+worker-macros = { version = "0.5.0", features = ['http'] }
 
 # These builds will take slightly longer, but the resulting binary is about half
 # the size, which is a nice win!

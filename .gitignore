@@ -1,5 +1,8 @@
-/target
-/output
+target
+output
+node_modules
+.wrangler
 
 Secrets*.toml
 .shuttle*
+.dev.vars*
