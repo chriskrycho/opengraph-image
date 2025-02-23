@@ -22,3 +22,11 @@ thiserror = "1"
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "fs", "macros"] }
 toml = "0.8"
 tower-http = { version = "0.6", features = ["cors"] }
+
+# These builds will take slightly longer, but the resulting binary is about half
+# the size, which is a nice win!
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+opt-level = "z"
