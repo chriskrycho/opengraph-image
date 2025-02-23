@@ -31,7 +31,7 @@ async fn main() -> Result<(), Error> {
 
     let auth: Auth = toml::from_str(&secrets_file)?;
 
-    let is_prod = env::var("ON_RENDER").unwrap_or_default() == "true";
+    let is_prod = env::var("RENDER").unwrap_or_default() == "true";
 
     let allowed = if is_prod {
         "https://*.chriskrycho.com"
