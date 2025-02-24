@@ -14,7 +14,7 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> Result<Response, Er
     console_error_panic_hook::set_once();
 
     if req.method() == http::Method::OPTIONS {
-        return cors();
+        return cors(&env);
     }
 
     let auth = get_auth(&env)?;
@@ -25,10 +25,17 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> Result<Response, Er
     get_image(auth, &query_params.page_title).await
 }
 
-fn cors() -> Result<Response, Error> {
+fn cors(env: &Env) -> Result<Response, Error> {
+    let is_prod = env.secret("DEV").map(|s| s.to_string()).unwrap_or_default() == "true";
+    let origins = if is_prod {
+        ["https://*.chriskrycho.com"]
+    } else {
+        ["http://localhost:*"]
+    };
+
     let cors = Cors::new()
         .with_methods([Method::Get])
-        .with_origins(["https://*.chriskrycho.com", "http://localhost:*"]);
+        .with_origins(origins);
 
     Response::empty()
         .and_then(|res| res.with_cors(&cors))
