@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: OpenGraph Image Generator
-    runtime: rust
-    autoDeploy: true
-    domain: opengraph.chriskrycho.com
-    buildCommand: cargo build --release --locked
-    startCommand: target/release/opengraph-image
