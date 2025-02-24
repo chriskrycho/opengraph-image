@@ -1,7 +1,7 @@
 mod b2;
 mod image;
 
-use std::env;
+use std::{env, string::FromUtf8Error};
 
 use sha1::{Digest, Sha1};
 
@@ -19,10 +19,14 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> Result<Response, Er
 
     let auth = get_auth(&env)?;
 
-    let qp_str = req.uri().query().ok_or(Error::MissingPageTitle)?;
-    let query_params: QueryParams = serde_urlencoded::from_str(qp_str)?;
+    let path = req
+        .uri()
+        .path()
+        .strip_prefix('/')
+        .ok_or(Error::MissingPageTitle)?;
 
-    get_image(auth, &query_params.page_title).await
+    let page_title = urlencoding::decode(&path)?;
+    get_image(auth, &page_title).await
 }
 
 fn cors(env: &Env) -> Result<Response, Error> {
@@ -92,11 +96,6 @@ struct Auth {
     key: String,
 }
 
-#[derive(Debug, serde::Deserialize)]
-struct QueryParams {
-    page_title: String,
-}
-
 #[derive(Debug, thiserror::Error)]
 enum Error {
     #[error(transparent)]
@@ -108,18 +107,18 @@ enum Error {
     #[error("Invalid or missing secrets: {source}")]
     Secrets { source: worker::Error },
 
-    #[error("No `page_title` query param")]
-    MissingPageTitle,
-
     #[error(transparent)]
     Worker {
         #[from]
         source: worker::Error,
     },
 
-    #[error("Could not deseerialize query params: {source}")]
-    InvalidQps {
+    #[error("Could not deserialize query params: {source}")]
+    InvalidPath {
         #[from]
-        source: serde::de::value::Error,
+        source: FromUtf8Error,
     },
+
+    #[error("Missing page title")]
+    MissingPageTitle,
 }
