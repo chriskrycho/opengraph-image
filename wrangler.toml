@@ -2,5 +2,15 @@ name = "opengraph-image"
 main = "build/worker/shim.mjs"
 compatibility_date = "2025-02-24"
 
+routes = [
+  { pattern = "shop.example.com", custom_domain = true }
+]
+
 [build]
 command = "cargo install -q worker-build && worker-build --release"
+
+# wrangler.toml (wrangler v3.88.0^)
+[observability.logs]
+enabled = true
+
+invocation_logs = false
