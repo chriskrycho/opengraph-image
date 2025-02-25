@@ -19,14 +19,31 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> Result<Response, Er
 
     let auth = get_auth(&env)?;
 
-    let path = req
-        .uri()
+    let uri = req.uri();
+    let from_path = uri
         .path()
         .strip_prefix('/')
-        .ok_or(Error::MissingPageTitle)?;
+        .and_then(|s| if s.is_empty() { None } else { Some(s) })
+        .map(|s| s.to_string());
 
-    let page_title = urlencoding::decode(&path)?;
+    let from_query = uri
+        .query()
+        .and_then(|qp| serde_urlencoded::from_str::<QueryParams>(qp).ok())
+        .map(|qp| qp.page_title);
+
+    let page_title = match (from_path, from_query) {
+        (Some(title), None) | (None, Some(title)) => Ok(title),
+        (Some(_), Some(_)) => Err(Error::BothPathAndQuery),
+        (None, None) => Err(Error::MissingPageTitle),
+    }?;
+
+    let page_title = urlencoding::decode(&page_title)?;
     get_image(auth, &page_title).await
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct QueryParams {
+    page_title: String,
 }
 
 fn cors(env: &Env) -> Result<Response, Error> {
@@ -121,4 +138,7 @@ enum Error {
 
     #[error("Missing page title")]
     MissingPageTitle,
+
+    #[error("Requested both ?page_title and /:page_title")]
+    BothPathAndQuery,
 }
