@@ -5,7 +5,7 @@ use std::{env, string::FromUtf8Error};
 
 use sha1::{Digest, Sha1};
 
-use worker::{Context, Cors, Env, Headers, HttpRequest, Method, Response, event};
+use worker::{Cache, CacheKey, Context, Cors, Env, Headers, HttpRequest, Method, Response, event};
 
 const GIT_SHA: &str = env!("GIT_SHA");
 
@@ -17,12 +17,17 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> Result<Response, Er
         return cors(&env);
     }
 
-    let auth = get_auth(&env)?;
-
     let uri = req.uri();
+
+    let cache = Cache::default();
+    let cache_key = CacheKey::from(uri.to_string());
+    if let Some(resp) = cache.get(cache_key, false).await? {
+        return Ok(resp);
+    }
+
     let from_path = uri
         .path()
-        .strip_prefix('/')
+        .strip_prefix("/page-title/")
         .and_then(|s| if s.is_empty() { None } else { Some(s) })
         .map(|s| s.to_string());
 
@@ -38,7 +43,14 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> Result<Response, Er
     }?;
 
     let page_title = urlencoding::decode(&page_title)?;
-    get_image(auth, &page_title).await
+
+    let auth = get_auth(&env)?;
+    let mut response = get_image(auth, &page_title).await?;
+
+    let cache_key = CacheKey::from(uri.to_string());
+    cache.put(cache_key, response.cloned()?).await?;
+
+    Ok(response)
 }
 
 #[derive(Debug, serde::Deserialize)]
