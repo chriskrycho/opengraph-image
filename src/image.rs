@@ -1,6 +1,6 @@
 use ril::{Font, ImageFormat, Rgb, TextAlign, TextLayout, TextSegment, WrapStyle};
 
-pub(crate) fn render(text: &str) -> Vec<u8> {
+pub fn render(text: &str) -> Vec<u8> {
     println!("INFO: Rendering image for '{}'", text);
     let fonts = Fonts::load();
 

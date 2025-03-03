@@ -4,8 +4,13 @@ version = "0.1.0"
 edition = "2024"
 license = "BlueOak-1.0.0"
 
+[workspace]
+members = ["cli"]
+
+# build both rlib and cdylib so this can be built and linked locally to run it
+# myself, but also can be deployed as Wasm.
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["rlib", "cdylib"]
 
 [package.metadata.release]
 release = false

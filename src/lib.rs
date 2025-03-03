@@ -7,6 +7,8 @@ use sha1::{Digest, Sha1};
 
 use worker::{Cache, Context, Cors, Env, Headers, HttpRequest, Method, Response, event};
 
+pub use image::render;
+
 const GIT_SHA: &str = env!("GIT_SHA");
 
 #[event(fetch)]
