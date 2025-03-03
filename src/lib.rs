@@ -10,7 +10,7 @@ use worker::{Cache, Context, Cors, Env, Headers, HttpRequest, Method, Response, 
 const GIT_SHA: &str = env!("GIT_SHA");
 
 #[event(fetch)]
-async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> Result<Response, Error> {
+async fn fetch(req: HttpRequest, env: Env, ctx: Context) -> Result<Response, Error> {
     console_error_panic_hook::set_once();
 
     if req.method() == http::Method::OPTIONS {
@@ -42,12 +42,20 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> Result<Response, Er
         (None, None) => Err(Error::MissingPageTitle),
     }?;
 
-    let page_title = urlencoding::decode(&page_title)?;
+    let decoded_title = urlencoding::decode(&page_title)?;
 
     let auth = get_auth(&env)?;
-    let mut response = get_image(auth, &page_title).await?;
+    let mut response = get_image(auth, &decoded_title).await?;
 
-    cache.put(&cache_key, response.cloned()?).await?;
+    // Let the caching work happen while returning the response. (This is the
+    // canonical example for the `wait_util` API, in fact.)
+    let for_cache = response.cloned()?;
+    ctx.wait_until(async move {
+        cache
+            .put(&cache_key, for_cache)
+            .await
+            .unwrap_or_else(|cause| panic!("Failed to cache '{page_title}': {cause}"));
+    });
 
     Ok(response)
 }
