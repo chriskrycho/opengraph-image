@@ -15,5 +15,17 @@ struct Args {
     page_title: String,
 
     /// Where to emit the file
+    #[arg(short, long)]
     out: PathBuf,
+
+    /// Which site to build for. Defaults to Sympolymathesy if not specified.
+    #[arg(short, long)]
+    site: Site,
+}
+
+#[derive(Debug, Default, Clone, clap::ValueEnum)]
+enum Site {
+    #[default]
+    Sympolymathesy,
+    Music,
 }
