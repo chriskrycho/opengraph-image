@@ -1,8 +1,14 @@
+use std::sync::LazyLock;
+
 use ril::{Font, ImageFormat, Rgb, TextAlign, TextLayout, TextSegment, WrapStyle};
 
 pub fn render(text: &str) -> Vec<u8> {
     println!("INFO: Rendering image for '{}'", text);
-    let fonts = Fonts::load();
+
+    // In principle, this could be a slowdown if there is contention, but in
+    // practice I benchmarked it and… there isn’t enough for it to matter; it
+    // runs the same speed either way.
+    let fonts = &*FONTS;
 
     // The offset *would* be 32, 32, but needs to take off one pixel on each
     // side to account for the extra pixel outside the inset rectangle one each
@@ -76,18 +82,11 @@ struct Fonts {
     frame_head_italic: Font,
 }
 
-impl Fonts {
-    fn load() -> Fonts {
-        Fonts {
-            sanomat_sans_text_semibold_italic: Font::from_bytes(
-                SANOMAT_SANS_TEXT_SEMIBOLD_ITALIC,
-                90.0,
-            )
-            .expect("could not load Sanomat Sans Text Semibold Italic"),
-            sanomat_semibold: Font::from_bytes(SANOMAT_SEMIBOLD, 132.0).expect("Sanomat Semibold"),
-            frame_head: Font::from_bytes(FRAME_HEAD, 90.0).expect("could not load Frame Head"),
-            frame_head_italic: Font::from_bytes(FRAME_HEAD_ITALIC, 90.0)
-                .expect("could not load Frame Head Italic"),
-        }
-    }
-}
+static FONTS: LazyLock<Fonts> = LazyLock::new(|| Fonts {
+    sanomat_sans_text_semibold_italic: Font::from_bytes(SANOMAT_SANS_TEXT_SEMIBOLD_ITALIC, 90.0)
+        .expect("could not load Sanomat Sans Text Semibold Italic"),
+    sanomat_semibold: Font::from_bytes(SANOMAT_SEMIBOLD, 132.0).expect("Sanomat Semibold"),
+    frame_head: Font::from_bytes(FRAME_HEAD, 90.0).expect("could not load Frame Head"),
+    frame_head_italic: Font::from_bytes(FRAME_HEAD_ITALIC, 90.0)
+        .expect("could not load Frame Head Italic"),
+});

@@ -1,16 +1,11 @@
-use std::path::PathBuf;
+use std::{io, path::PathBuf};
 
 use clap::Parser;
 
-fn main() {
+fn main() -> Result<(), io::Error> {
     let args = Args::parse();
     let image = opengraph_image::render(&args.page_title);
-    std::fs::write(&args.out, image).unwrap_or_else(|cause| {
-        panic!(
-            "Could not write to '{}'. Cause: {cause}",
-            args.out.display()
-        )
-    });
+    std::fs::write(&args.out, image)
 }
 
 #[derive(Debug, Parser)]
