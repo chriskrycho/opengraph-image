@@ -30,6 +30,7 @@ async fn fetch(req: HttpRequest, env: Env, ctx: Context) -> Result<Response, Err
         return Ok(resp);
     }
 
+    // Deprecated: I want to *just* use QPs going forward.
     let title_from_path = uri
         .path()
         .strip_prefix("/page-title/")
