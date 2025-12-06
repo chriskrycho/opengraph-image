@@ -4,15 +4,22 @@ use ril::{
     Font, HorizontalAnchor, ImageFormat, Rgb, TextAlign, TextLayout, TextSegment, WrapStyle,
 };
 
-pub struct Content<'a> {
-    pub title: &'a str,
-    pub subtitle: Option<&'a str>,
+pub struct Content {
+    pub title: String,
+    pub subtitle: Option<String>,
 }
 
 pub fn render(content: Content) -> Vec<u8> {
     println!("INFO: Rendering image:");
     println!("      title:   '{}'", content.title);
-    println!("      subitle: '{}'", content.subtitle.unwrap_or("(none)"));
+    println!(
+        "      subitle: '{}'",
+        content
+            .subtitle
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or("(none)")
+    );
 
     // In principle, this could be a slowdown if there is contention, but in
     // practice I benchmarked it and… there isn’t enough for it to matter; it
@@ -42,7 +49,7 @@ pub fn render(content: Content) -> Vec<u8> {
             POST_TITLE_COLOR,
         );
 
-    let post_subtitle = content.subtitle.map(|subtitle| {
+    let post_subtitle = content.subtitle.as_ref().map(|subtitle| {
         TextLayout::new()
             .with_wrap(WrapStyle::Word)
             .with_align(TextAlign::Left)

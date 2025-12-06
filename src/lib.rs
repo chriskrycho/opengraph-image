@@ -20,40 +20,46 @@ async fn fetch(req: HttpRequest, env: Env, ctx: Context) -> Result<Response, Err
 
     let uri = req.uri();
 
+    // Explicitly use Cloudflare's cached value if I can. Incorporate the Git
+    // SHA for this build as a way of busting Cloudflare's cache for the same
+    // set of page title and query when I have updated this tool. (Otherwise, I
+    // will always serve the same images no matter how I change this!)
     let cache = Cache::default();
-    let cache_key = uri.to_string();
+    let cache_key = uri.to_string() + GIT_SHA;
     if let Some(resp) = cache.get(&cache_key, false).await? {
         return Ok(resp);
     }
 
-    let from_path = uri
+    let title_from_path = uri
         .path()
         .strip_prefix("/page-title/")
         .and_then(|s| if s.is_empty() { None } else { Some(s) })
         .map(|s| s.to_string());
 
-    let from_query = uri
+    let qps = uri
         .query()
-        .and_then(|qp| serde_urlencoded::from_str::<QueryParams>(qp).ok())
-        .map(|qp| qp.page_title);
+        .and_then(|qp| serde_urlencoded::from_str::<QueryParams>(qp).ok());
 
-    let page_title = match (from_path, from_query) {
-        (Some(title), None) | (None, Some(title)) => Ok(title),
+    let page_title = match (&title_from_path, qps.as_ref().map(|qps| &qps.page_title)) {
+        (Some(title), None) | (None, Some(title)) => {
+            urlencoding::decode(title).map_err(Error::from)
+        }
         (Some(_), Some(_)) => Err(Error::BothPathAndQuery),
         (None, None) => Err(Error::MissingPageTitle),
-    }?;
+    }?
+    .to_string();
 
-    let decoded_title = urlencoding::decode(&page_title)?;
+    let subtitle = qps
+        .as_ref()
+        .and_then(|qps| qps.subtitle.as_ref())
+        .map(|subtitle| urlencoding::decode(subtitle))
+        .transpose()?
+        .map(|s| s.to_string());
+
+    let title = urlencoding::decode(&page_title)?.to_string();
 
     let auth = get_auth(&env)?;
-    let mut response = get_image(
-        auth,
-        Content {
-            title: &decoded_title,
-            subtitle: None,
-        },
-    )
-    .await?;
+    let mut response = get_image(auth, Content { title, subtitle }).await?;
 
     // Let the caching work happen while returning the response. (This is the
     // canonical example for the `wait_util` API, in fact.)
@@ -71,6 +77,7 @@ async fn fetch(req: HttpRequest, env: Env, ctx: Context) -> Result<Response, Err
 #[derive(Debug, serde::Deserialize)]
 struct QueryParams {
     page_title: String,
+    subtitle: Option<String>,
 }
 
 fn cors(env: &Env) -> Result<Response, Error> {
@@ -102,9 +109,9 @@ fn get_auth(env: &Env) -> Result<Auth, Error> {
     Ok(Auth { id, key })
 }
 
-async fn get_image<'a>(auth: Auth, content: Content<'a>) -> Result<Response, Error> {
+async fn get_image<'a>(auth: Auth, content: Content) -> Result<Response, Error> {
     let mut text_as_bytes = content.title.as_bytes().to_owned();
-    if let Some(subtitle) = content.subtitle {
+    if let Some(subtitle) = &content.subtitle {
         text_as_bytes.extend_from_slice(subtitle.as_bytes());
     }
 
@@ -124,7 +131,7 @@ async fn get_image<'a>(auth: Auth, content: Content<'a>) -> Result<Response, Err
         }
     };
 
-    let mut headers = Headers::new();
+    let headers = Headers::new();
     headers.set("Content-Type", "image/png")?;
     headers.set("Cache-Control", "public, max-age=31536000")?;
     headers.set("ETag", &file_name)?;

@@ -5,8 +5,8 @@ use clap::Parser;
 fn main() -> Result<(), io::Error> {
     let args = Args::parse();
     let image = opengraph_image::render(opengraph_image::Content {
-        title: &args.title,
-        subtitle: args.subtitle.as_ref().map(|s| s.as_str()),
+        title: args.title,
+        subtitle: args.subtitle,
     });
     std::fs::write(&args.out, image)
 }
