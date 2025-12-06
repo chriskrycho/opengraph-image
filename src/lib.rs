@@ -4,10 +4,9 @@ mod image;
 use std::{env, string::FromUtf8Error};
 
 use sha1::{Digest, Sha1};
-
 use worker::{Cache, Context, Cors, Env, Headers, HttpRequest, Method, Response, event};
 
-pub use image::render;
+pub use image::{Content, render};
 
 const GIT_SHA: &str = env!("GIT_SHA");
 
@@ -47,7 +46,14 @@ async fn fetch(req: HttpRequest, env: Env, ctx: Context) -> Result<Response, Err
     let decoded_title = urlencoding::decode(&page_title)?;
 
     let auth = get_auth(&env)?;
-    let mut response = get_image(auth, &decoded_title).await?;
+    let mut response = get_image(
+        auth,
+        Content {
+            title: &decoded_title,
+            subtitle: None,
+        },
+    )
+    .await?;
 
     // Let the caching work happen while returning the response. (This is the
     // canonical example for the `wait_util` API, in fact.)
@@ -96,8 +102,13 @@ fn get_auth(env: &Env) -> Result<Auth, Error> {
     Ok(Auth { id, key })
 }
 
-async fn get_image(auth: Auth, page_title: &str) -> Result<Response, Error> {
-    let hash = sha1_hash(page_title.as_bytes());
+async fn get_image<'a>(auth: Auth, content: Content<'a>) -> Result<Response, Error> {
+    let mut text_as_bytes = content.title.as_bytes().to_owned();
+    if let Some(subtitle) = content.subtitle {
+        text_as_bytes.extend_from_slice(subtitle.as_bytes());
+    }
+
+    let hash = sha1_hash(&text_as_bytes);
     let file_name = format!("{GIT_SHA}-{hash}.png");
 
     let mut b2_client = b2::ClientBuilder::new(auth.id, auth.key)
@@ -107,7 +118,7 @@ async fn get_image(auth: Auth, page_title: &str) -> Result<Response, Error> {
     let image_data = match b2_client.download_file(&file_name).await? {
         Some(data) => data,
         None => {
-            let data = image::render(page_title);
+            let data = image::render(content);
             b2_client.upload_file(&file_name, &data).await?;
             data
         }
