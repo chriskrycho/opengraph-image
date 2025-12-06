@@ -35,8 +35,8 @@ serde_urlencoded = "0.7.1"
 sha1 = "0.10"
 thiserror = "1"
 urlencoding = "2"
-worker = { version = "0.5.0", features = ['http'] }
-worker-macros = { version = "0.5.0", features = ['http'] }
+worker = { version = "0.7.1", features = ['http'] }
+worker-macros = { version = "0.7.1", features = ['http'] }
 
 # These builds will take slightly longer, but the resulting binary is about half
 # the size, which is a nice win!
