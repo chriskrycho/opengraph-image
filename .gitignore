@@ -6,3 +6,4 @@ node_modules
 Secrets*.toml
 .shuttle*
 .dev.vars*
+.claude
